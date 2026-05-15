@@ -31,7 +31,7 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: AppPrivateSubnet1B
+          Value: AppSubnet1B
 
   DataPrivateSubnet1C:
     Type: 'AWS::EC2::Subnet'
@@ -41,5 +41,38 @@ Resources:
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: DataPrivateSubnet1C
+          Value: DataSubnet1C
+
+  PublicSubnet2A:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: '172.16.4.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnet2A
+
+  AppPrivateSubnet2B:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: '172.16.5.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: AppSubnet2B
+
+  DataPrivateSubnet2C:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: '172.16.6.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags: 
+        - Key: Name
+          Value: DataSubnet2C
+
+
 
