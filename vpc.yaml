@@ -147,4 +147,54 @@ Resources:
           ToPort: 22
           CidrIp: 38.23.142.172/32
 
+# App Subnet EC2 Instance 1B
+  AppInstance1B:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.nano
+      KeyName: bastion
+      ImageId: ami-0637233f83844f908 # Region specific to ca-west-1
+      SubnetId: !Ref AppPrivateSubnet1B
+      SecurityGroupIds:
+        - !Ref AppInstance1BSG
+      Tags:
+        - Key: Name
+          Value: App1
+
+# App Subnet EC2 Instance 2B
+  AppInstance2B:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.nano
+      ImageId: ami-0637233f83844f908 # Region specific to ca-west-1
+      SubnetId: !Ref AppPrivateSubnet2B
+      SecurityGroupIds:
+        - !Ref AppInstance2BSG
+      Tags:
+        - Key: Name
+          Value: App2
+
+# Security Group for App1B that references Bastion in Public1A
+  AppInstance1BSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow SSH From Bastion'
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref BastionSG
+
+  # Security Group for App2B that references EC2 in Private 1B
+  AppInstance2BSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow Ping From App Server in Subnet 1B'
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          SourceSecurityGroupId: !Ref AppInstance1BSG
 
