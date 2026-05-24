@@ -76,7 +76,7 @@ Resources:
 
 # Internet Gateway
   InternetGateway:
-    Type: AWS::EC2::InternetGateway
+    Type: 'AWS::EC2::InternetGateway'
     Properties:
       Tags:
         - Key: Name
@@ -84,14 +84,14 @@ Resources:
 
 # Attach IGW to VPC
   AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
+    Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref InternetGateway
 
 # Public Route Tables
   PublicRouteTable:
-    Type: AWS::EC2::RouteTable
+    Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref MyVPC
       Tags:
@@ -100,7 +100,7 @@ Resources:
 
 # Public Routes
   PublicRoute:
-    Type: AWS::EC2::Route
+    Type: 'AWS::EC2::Route'
     DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
@@ -109,15 +109,96 @@ Resources:
 
 # Public Subnet 1A Route Table Association
   PublicSubnet1ARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnet1A
       RouteTableId: !Ref PublicRouteTable
 
-# Public Subnet 1A Route Table Association
+# Public Subnet 2A Route Table Association
   PublicSubnet2ARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnet2A
       RouteTableId: !Ref PublicRouteTable
+
+# (New Stuff) Application Load Balancer
+  MyLoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Subnets:
+        - !Ref PublicSubnet1A
+        - !Ref PublicSubnet2A
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+
+# Target Group for ALB
+  MyTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      VpcId: !Ref MyVPC
+      Port: 80
+      Protocol: 'HTTP'
+
+# Listener for ALB
+  MyListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: 'forward'
+          TargetGroupArn: !Ref MyTargetGroup
+      LoadBalancerArn: !Ref MyLoadBalancer
+      Port: 80
+      Protocol: 'HTTP'
+
+# Web Server / ALB Security Group
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Enable HTTP access'
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+# Webserver EC2 instance in public subnet 1A
+  WebServerInstance1A:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t3.nano
+      ImageId: ami-0637233f83844f908 # Region specific to ca-west-1
+      SubnetId: !Ref PublicSubnet1A
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      Tags:
+        - Key: 'Name'
+          Value: 'WebServerInstance1A'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "Hello from My Web Server 1A" > /var/www/html/index.html
+
+# Webserver EC2 instance in public subnet 2A
+  WebServerInstance2A:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t3.nano
+      ImageId: ami-0637233f83844f908 # Region specific to ca-west-1
+      SubnetId: !Ref PublicSubnet2A
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      Tags:
+        - Key: 'Name'
+          Value: 'WebServerInstance2A'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "Hello from My Web Server 2A" > /var/www/html/index.html      
 
