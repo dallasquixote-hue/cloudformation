@@ -133,27 +133,31 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0
 
-# Launch Configuration for EC2's
-  MyLaunchConfiguration:
-    Type: 'AWS::AutoScaling::LaunchConfiguration'
+# Launch Template (replaces LaunchConfiguration)
+  MyLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
     Properties:
-      ImageId: 'ami-0637233f83844f908' # Region specific to ca-west-1
-      InstanceType: 't3.nano'
-      SecurityGroups: 
-       - !Ref WebServerSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          yum install -y httpd
-          systemctl start httpd
-          systemctl enable httpd
-          echo "Hello from autoscaling instance." > /var/www/html/index.html
+      LaunchTemplateName: my-launch-template
+      LaunchTemplateData:
+        ImageId: 'ami-0637233f83844f908'
+        InstanceType: 't3.nano'
+        SecurityGroupIds:
+          - !Ref WebServerSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum install -y httpd
+            systemctl start httpd
+            systemctl enable httpd
+            echo "Hello from autoscaling instance." > /var/www/html/index.html          
 
-# ASG
+# ASG with Launch Template
   MyAutoScalingGroup:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
-      LaunchConfigurationName: !Ref MyLaunchConfiguration
+      LaunchTemplate:
+        LaunchTemplateId: !Ref MyLaunchTemplate
+        Version: !GetAtt MyLaunchTemplate.LatestVersionNumber
       MinSize: 1
       MaxSize: 3
       DesiredCapacity: 2
@@ -166,7 +170,7 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmDescription: 'Alarm when CPU exceeds 70%'
-      MetricName: 'CPUUtilizaton'
+      MetricName: 'CPUUtilization'
       Namespace: 'AWS/EC2'
       Statistic: Average
       Period: '300'
